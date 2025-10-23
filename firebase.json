@@ -3,13 +3,14 @@
     {
       "site": "admin-explified",
       "public": "dist",
-      "ignore": ["firebase.json", "*/.", "*/node_modules/"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
-          "source": "*",
+          "source": "**",
           "destination": "/index.html"
         }
       ]
     }
   ]
 }
+      

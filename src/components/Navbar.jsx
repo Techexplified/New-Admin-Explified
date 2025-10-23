@@ -36,12 +36,7 @@ const Navbar = () => {
       </h1>
 
       <div className="relative flex gap-4" ref={menuRef}>
-        <button
-          onClick={() => navigate("/explified-analytics/login")}
-          className="px-2 py-1 bg-cyan-200 rounded-lg"
-        >
-          Explified Analytics
-        </button>
+
         <button
           onClick={() => setShowMenu(!showMenu)}
           className="flex items-center space-x-2 focus:outline-none group"

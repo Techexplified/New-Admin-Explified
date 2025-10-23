@@ -12,6 +12,10 @@ import YTAnalytics from "./pages/YTAnalytics";
 import ProductDashboard from "./pages/ProductDashboard";
 import YoutubeAnalytics from "./pages/YoutubeAnalytics";
 import LoginWithGoogle from "./pages/LoginWithGoogle";
+import UserComponent from "./pages/UsersComp";
+import GoogleAnalytics from "./pages/GoogleAnalytics";
+
+
 
 const App = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -50,15 +54,14 @@ const App = () => {
           <Route path="analytics/extension" element={<ExtensionAnalytics />} />
           <Route path="analytics/firebase" element={<FirebaseAnalytics />} />
           <Route path="analytics/yt" element={<YTAnalytics />} />
+          <Route path="explified/users" element={<UserComponent/>} />
           <Route
             path="explified-analytics/login"
             element={<LoginWithGoogle />}
           />
         </Route>
-        <Route
-          path="dashboard/explified-analytics/access_token"
-          element={<YoutubeAnalytics />}
-        />
+    <Route path="dashboard/explified-analytics" element={<YoutubeAnalytics />} />
+    <Route path="/google/explified/analytics" element={<GoogleAnalytics />} />
       </Routes>
     </BrowserRouter>
   );
