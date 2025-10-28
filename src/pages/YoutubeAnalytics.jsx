@@ -180,7 +180,7 @@ const YoutubeAnalytics = () => {
                     className="mb-6 pb-4 border-b border-gray-200 flex gap-4 items-start hover:bg-gray-50 p-2 rounded transition"
                   >
                     <img
-                      src={video.thumbnail}
+                      src={video?.thumbnail}
                       alt={video.title}
                       className="w-32 h-20 object-cover rounded-lg shadow-sm border border-gray-200"
                     />
