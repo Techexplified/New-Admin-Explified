@@ -32,7 +32,7 @@ const Navbar = () => {
     <div className="bg-white border-b border-indigo-100 px-6 py-4 flex justify-between items-center shadow-sm fixed top-0 left-0 right-0 z-20">
       <div className="flex items-center gap-3">
         {/* Logo - place explified_logo.png in the public folder (public/explified_logo.png) */}
-        <img src="/explified_logo.png" alt="Explified" className="w-10 h-10 rounded-md object-contain" />
+        
         <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Explified Admin</h1>
       </div>
       <div className="relative flex gap-4" ref={menuRef}>

@@ -46,6 +46,16 @@ const Sidebar = () => {
         >
           User Data
         </NavLink>
+         <NavLink
+          to="/extensions-data"
+          className={({ isActive }) =>
+            `block font-medium px-3 py-2 rounded-md transition-all duration-200 hover:bg-indigo-50 hover:scale-[1.01] hover:shadow-sm ${
+              isActive ? "text-indigo-600 bg-indigo-50" : "text-gray-700"
+            }`
+          }
+        >
+          Extension Data
+        </NavLink>
       </nav>
     </div>
   );

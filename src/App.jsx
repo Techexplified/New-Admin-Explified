@@ -14,6 +14,7 @@ import YoutubeAnalytics from "./pages/YoutubeAnalytics";
 import LoginWithGoogle from "./pages/LoginWithGoogle";
 import UserComponent from "./pages/UsersComp";
 import GoogleAnalytics from "./pages/GoogleAnalytics";
+import Extensions from "./pages/extensions";
 
 
 
@@ -48,6 +49,8 @@ const App = () => {
           }
         >
           <Route path="dashboard" element={<Dashboard />} />
+          
+<Route path="extensions-data" element={<Extensions />} />
           <Route path="product-analytics" element={<ProductDashboard />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="analytics/web" element={<WebAnalytics />} />
