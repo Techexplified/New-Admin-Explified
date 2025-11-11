@@ -19,7 +19,7 @@ import Extensions from "./pages/extensions";
 
 
 const App = () => {
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   return (
     <BrowserRouter>

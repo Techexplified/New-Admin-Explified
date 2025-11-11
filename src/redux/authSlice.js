@@ -1,10 +1,10 @@
-// authSlice.js (simplified example)
+// authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   user: null,
   token: null,
-  isLoggedIn: false,
+  isAuthenticated: false, // changed name to match App usage
 };
 
 const authSlice = createSlice({
@@ -14,12 +14,12 @@ const authSlice = createSlice({
     login(state, action) {
       state.user = action.payload.user;
       state.token = action.payload.token;
-      state.isLoggedIn = true;
+      state.isAuthenticated = true;
     },
     logout(state) {
       state.user = null;
       state.token = null;
-      state.isLoggedIn = false;
+      state.isAuthenticated = false;
     },
   },
 });
