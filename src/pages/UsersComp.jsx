@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get('https://explified-app.web.app/api/get/users');
+        const res = await axios.get('https://us-central1-explified-app.cloudfunctions.net/api/api/users/users');
         setUsers(res.data.users);
         setFilteredUsers(res.data.users); // Initialize filtered list
       } catch (err) {
