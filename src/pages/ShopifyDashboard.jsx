@@ -32,7 +32,7 @@ export default function ShopifyAnalyticsDashboard() {
       setLoading(true);
       setErr(null);
       try {
-        const res = await fetch("https://us-central1-explified-app.cloudfunctions.net/api/api/shopify/partner/analytics", { credentials: "include" });
+        const res = await fetch("https://us-central1-explified-app.cloudfunctions.net/api/api/shopify/partner/analytics");
         const text = await res.text();
         let json = null;
         try { json = JSON.parse(text); } catch (e) {}
