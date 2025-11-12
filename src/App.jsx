@@ -15,6 +15,7 @@ import LoginWithGoogle from "./pages/LoginWithGoogle";
 import UserComponent from "./pages/UsersComp";
 import GoogleAnalytics from "./pages/GoogleAnalytics";
 import Extensions from "./pages/extensions";
+import ShopifyAnalyticsDashboard from "./pages/shopifyDashboard";
 
 
 
@@ -51,6 +52,7 @@ const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
           <Route path="dashboard" element={<Dashboard />} />
           
 <Route path="extensions-data" element={<Extensions />} />
+<Route path="shopify-data" element={<ShopifyAnalyticsDashboard />} />
           <Route path="product-analytics" element={<ProductDashboard />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="analytics/web" element={<WebAnalytics />} />
