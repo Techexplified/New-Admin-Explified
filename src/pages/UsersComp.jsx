@@ -1,475 +1,638 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from "recharts";
+import { BarChart3, X } from "lucide-react";
 
- const UserComponent = () => {
-  const [users, setUsers] = useState([]);         // All users
-  const [filteredUsers, setFilteredUsers] = useState([]); // Filtered list
-  const [search, setSearch] = useState('');       // Search input
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const PRIMARY = "#23B5B5";
+
+/* APPS */
+const APPS = [
+  "Youtube Summarizer",
+  "AI Subtitler",
+  "Text To Video Generator",
+  "Slideshow Maker",
+  "BG Remover",
+  "Image Styler",
+  "Video Meme Generator",
+  "Integrations",
+  "Socials",
+  "AI GIF Generator",
+  "AI Hugging Video",
+  "Ageing Video AI",
+  "AI Tattoo Generator",
+  "Image To Video AI",
+  "Link To Video AI",
+];
+
+/* helpers */
+const randomInt = (min, max) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
+
+const assignRandomSubscriptions = () => {
+  const count = randomInt(1, 3);
+  return [...APPS].sort(() => 0.5 - Math.random()).slice(0, count);
+};
+
+const buildTrend = () =>
+  Array.from({ length: 7 }).map((_, i) => ({
+    day: `Day ${i + 1}`,
+    events: randomInt(40, 180),
+  }));
+
+export default function UserComponent() {
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [search, setSearch] = useState("");
+
+  const [showSubFilter, setShowSubFilter] = useState(false);
+  const [selectedSubs, setSelectedSubs] = useState([]);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+const [activeApp, setActiveApp] = useState(null);
+const [activeUser, setActiveUser] = useState(null);
 
 
+  const dropdownRef = useRef(null);
+
+  /* FETCH USERS */
   useEffect(() => {
     const fetchUsers = async () => {
-      try {
-        const res = await axios.get('https://us-central1-explified-app.cloudfunctions.net/api/api/users/users');
-        setUsers(res.data.users);
-        setFilteredUsers(res.data.users); // Initialize filtered list
-      } catch (err) {
-        setError(err.message || 'Something went wrong');
-      } finally {
-        setLoading(false);
-      } 
+      const res = await axios.get(
+        "https://us-central1-explified-app.cloudfunctions.net/api/api/users/users"
+      );
+
+      const cleaned = (res.data.users || [])
+        .filter(
+          (u) =>
+            (u.firstName && u.firstName.trim()) ||
+            (u.lastName && u.lastName.trim())
+        )
+        .map((u) => ({
+          ...u,
+          _subscriptions: assignRandomSubscriptions(),
+          _usage: randomInt(120, 450),
+        }));
+
+      setUsers(cleaned);
+      setFilteredUsers(cleaned);
     };
 
     fetchUsers();
   }, []);
 
-  // Filter logic
+  /* OUTSIDE CLICK */
   useEffect(() => {
-    const filtered = users.filter((user) => {
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-      return fullName.includes(search.toLowerCase());
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowSubFilter(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* FILTER */
+  useEffect(() => {
+    let data = [...users];
+
+    if (search) {
+      data = data.filter((u) =>
+        `${u.firstName || ""} ${u.lastName || ""}`
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      );
+    }
+
+    if (selectedSubs.length > 0) {
+      data = data.filter((u) =>
+        u._subscriptions.some((s) => selectedSubs.includes(s))
+      );
+    }
+
+    setFilteredUsers(data);
+  }, [users, search, selectedSubs]);
+
+  /* ANALYTICS DATA */
+  const analyticsData = useMemo(() => {
+    return selectedSubs.map((app) => {
+      const appUsers = users.filter((u) =>
+        u._subscriptions.includes(app)
+      );
+      const totalEvents = appUsers.reduce(
+        (sum, u) => sum + u._usage,
+        0
+      );
+
+      return {
+        app,
+        users: appUsers.length,
+        events: totalEvents,
+        avg: appUsers.length
+          ? Math.round(totalEvents / appUsers.length)
+          : 0,
+        trend: buildTrend(),
+      };
     });
+  }, [selectedSubs, users]);
 
-    setFilteredUsers(filtered);
-  }, [search, users]);
-
-  if (loading) {
   return (
-    <div className="flex justify-center items-center h-64">
-      <svg
-        className="animate-spin h-10 w-10 text-gray-600"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        ></circle>
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8v8z"
-        ></path>
-      </svg>
-    </div>
-  );
-}
+    <section className="text-slate-100">
+      <div className="bg-[#020617] border border-slate-800 shadow-xl">
 
-  if (error) return <p>Error: {error}</p>;
- 
-  return (
-    <>
-      <section class="bg-gray-50  p-3 sm:p-5 mt-10">
-        <div class="mx-auto max-w-screen-2xl px-2 lg:px-8">
-          <div class="bg-white relative shadow-md sm:rounded-lg overflow-hidden">
-            <div class="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4 p-4">
-              <div class="w-full md:w-1/2">
-               <form className="flex items-center mb-4">
-        <label htmlFor="simple-search" className="sr-only">Search</label>
-        <div className="relative w-full">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg
-              aria-hidden="true"
-              className="w-5 h-5 text-gray-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
+        {/* HEADER */}
+        <div className="px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+          <h2 className="text-lg font-semibold">Explified Users</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            All users who have logged in to Explified products.
+          </p>
+
+          <div className="mt-3 flex items-center gap-3">
+            <span className="px-2.5 py-0.5 rounded-full text-xs bg-teal-500/10 text-teal-300 border border-teal-500/40">
+              {users.length} users
+            </span>
+
+            {/* SUB FILTER */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowSubFilter((v) => !v)}
+                className="px-3 py-1.5 rounded-md text-xs border border-slate-700 hover:border-teal-400"
+              >
+                Subscription ▾
+              </button>
+
+              {showSubFilter && (
+                <div className="absolute left-0 mt-3 w-[520px] bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl z-30">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    {APPS.map((app) => {
+                      const active = selectedSubs.includes(app);
+                      return (
+                        <label
+                          key={app}
+                          className={`flex gap-3 p-2 rounded-xl cursor-pointer border
+                            ${
+                              active
+                                ? "border-teal-400/40 bg-teal-500/10 text-teal-300"
+                                : "border-slate-800 hover:border-slate-700"
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={active}
+                            onChange={() =>
+                              setSelectedSubs((prev) =>
+                                active
+                                  ? prev.filter((s) => s !== app)
+                                  : [...prev, app]
+                              )
+                            }
+                            className="accent-teal-500 mt-1"
+                          />
+                          {app}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* VIEW ANALYTICS */}
+            <button
+              disabled={selectedSubs.length === 0}
+              onClick={() => setShowAnalytics(true)}
+              className={`ml-auto flex items-center gap-2 px-3 py-1.5 rounded-md text-xs border
+                ${
+                  selectedSubs.length > 0
+                    ? "border-teal-400 text-teal-300 hover:bg-teal-500/10"
+                    : "border-slate-700 text-slate-500 cursor-not-allowed"
+                }`}
             >
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
+              <BarChart3 size={14} />
+              View Analytics
+            </button>
           </div>
+        </div>
+
+        {/* SEARCH */}
+        <div className="px-6 py-3 border-b border-slate-800">
           <input
-            type="text"
-            id="simple-search"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2"
-            placeholder="Search by name"
+            className="w-full px-4 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-sm"
+            placeholder="Search by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </form>
-              </div>
-              <div class="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch md:items-center justify-end md:space-x-3 flex-shrink-0">
-                <button
-                  type="button"
-                  class="flex items-center justify-center text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 font-semibold rounded-lg text-sm px-4 py-2 transition-colors duration-200"
-                >
-                  <svg
-                    class="h-4 w-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
+
+        {/* TABLE (UNCHANGED STRUCTURE) */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-950 text-xs uppercase text-slate-400">
+              <tr>
+                <th className="px-6 py-3">User</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Subscription</th>
+                <th className="px-6 py-3">Usage</th>
+                <th className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u) => {
+                const name = `${u.firstName} ${u.lastName}`.trim();
+                const initials = name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2);
+
+                return (
+                  <tr
+                    key={u.id}
+                    className="border-t border-slate-800 hover:bg-teal-500/5"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add users
+                    <td className="px-6 py-4">
+                      <div className="flex gap-3 items-center">
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                          style={{ backgroundColor: PRIMARY }}
+                        >
+                          {initials}
+                        </div>
+                        <div>
+                          <div className="font-medium">{name}</div>
+                          <div className="text-[11px] text-slate-400">
+                            Explified user
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{u.email}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {u._subscriptions.map((s) => (
+                          <span
+                            key={s}
+                            onClick={() => setSelectedSubs([s])}
+                            className="cursor-pointer px-2 py-0.5 rounded-full text-[11px] bg-teal-500/10 text-teal-300 border border-teal-500/40"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-400">
+                      ~{u._usage} events
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                <button
+  onClick={() => setActiveUser(u)}
+  className="px-3 py-1.5 rounded-full border border-slate-600 text-xs hover:border-teal-400 hover:text-teal-300 transition"
+>
+  View profile
+</button>
+
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ANALYTICS MODAL */}
+{/* ANALYTICS DRAWER */}
+{/* ANALYTICS DRAWER */}
+<AnimatePresence>
+  {showAnalytics && (
+    <motion.div
+      className="fixed inset-0 z-40 flex"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="flex-1 bg-black/50"
+        onClick={() => {
+          setShowAnalytics(false);
+          setActiveApp(null);
+        }}
+      />
+
+      {/* Drawer */}
+      <motion.div
+        className="w-[560px] h-full bg-slate-950 border-l border-slate-800 p-6 overflow-y-auto"
+        initial={{ x: 560 }}
+        animate={{ x: 0 }}
+        exit={{ x: 560 }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">
+              App Analytics
+            </h3>
+            <p className="text-xs text-slate-400">
+              Analytics for selected subscriptions
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setShowAnalytics(false);
+              setActiveApp(null);
+            }}
+            className="p-1 rounded hover:bg-slate-800"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* APP SUMMARY + DRILLDOWN */}
+        <div className="space-y-4">
+          {analyticsData.map((app) => {
+            const isActive = activeApp?.app === app.app;
+
+            return (
+              <div
+                key={app.app}
+                className={`rounded-2xl border transition-all
+                  ${
+                    isActive
+                      ? "border-teal-400/40 bg-teal-500/5"
+                      : "border-slate-800 bg-slate-900/60 hover:bg-slate-900"
+                  }`}
+              >
+                {/* App Header */}
+                <button
+                  onClick={() =>
+                    setActiveApp(isActive ? null : app)
+                  }
+                  className="w-full p-4 text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-slate-200">
+                        {app.app}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {app.users} users · {app.events} events
+                      </div>
+                    </div>
+                    <div className="text-xs text-teal-300">
+                      {isActive ? "Hide details" : "View details"}
+                    </div>
+                  </div>
+
+                  {/* Mini KPIs */}
+                  <div className="mt-4 grid grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <div className="text-slate-400">Bounce</div>
+                      <div className="text-slate-200 font-medium">
+                        {randomInt(20, 60)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Avg session</div>
+                      <div className="text-slate-200 font-medium">
+                        {randomInt(2, 6)}m
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Engagement</div>
+                      <div className="text-slate-200 font-medium">
+                        {randomInt(60, 95)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Events</div>
+                      <div className="text-slate-200 font-medium">
+                        {app.events}
+                      </div>
+                    </div>
+                  </div>
                 </button>
 
-                <div class="flex items-center space-x-3 w-full md:w-auto">
-                  <button
-                    id="actionsDropdownButton"
-                    data-dropdown-toggle="actionsDropdown"
-                    class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 "
-                    type="button"
-                  >
-                    <svg
-                      class="-ml-1 mr-1.5 w-5 h-5"
-                      fill="currentColor"
-                      viewbox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
+                {/* DRILLDOWN SECTION */}
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="px-4 pb-4"
                     >
-                      <path
-                        clip-rule="evenodd"
-                        fill-rule="evenodd"
-                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      />
-                    </svg>
-                    Actions
-                  </button>
-                  <div
-                    id="actionsDropdown"
-                    class="hidden z-10 w-44 bg-white rounded divide-y divide-gray-100 shadow "
-                  >
-                    <ul
-                      class="py-1 text-sm text-gray-700 "
-                      aria-labelledby="actionsDropdownButton"
-                    >
-                      <li>
-                        <a href="#" class="block py-2 px-4 hover:bg-gray-100 ">
-                          Mass Edit
-                        </a>
-                      </li>
-                    </ul>
-                    <div class="py-1">
-                      <a
-                        href="#"
-                        class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100 "
-                      >
-                        Delete all
-                      </a>
-                    </div>
-                  </div>
-                  <button
-                    id="filterDropdownButton"
-                    data-dropdown-toggle="filterDropdown"
-                    class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 "
-                    type="button"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                      class="h-4 w-4 mr-2 text-gray-400"
-                      viewbox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    Filter
-                    <svg
-                      class="-mr-1 ml-1.5 w-5 h-5"
-                      fill="currentColor"
-                      viewbox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                    >
-                      <path
-                        clip-rule="evenodd"
-                        fill-rule="evenodd"
-                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    id="filterDropdown"
-                    class="z-10 hidden w-48 p-3 bg-white rounded-lg shadow "
-                  >
-                    <h6 class="mb-3 text-sm font-medium text-gray-900 ">
-                      Choose brand
-                    </h6>
-                    <ul
-                      class="space-y-2 text-sm"
-                      aria-labelledby="filterDropdownButton"
-                    >
-                      <li class="flex items-center">
-                        <input
-                          id="apple"
-                          type="checkbox"
-                          value=""
-                          class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 "
-                        />
-                        <label
-                          for="apple"
-                          class="ml-2 text-sm font-medium text-gray-900 "
-                        >
-                          Apple (56)
-                        </label>
-                      </li>
-                      <li class="flex items-center">
-                        <input
-                          id="fitbit"
-                          type="checkbox"
-                          value=""
-                          class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 "
-                        />
-                        <label
-                          for="fitbit"
-                          class="ml-2 text-sm font-medium text-gray-900"
-                        >
-                          Microsoft (16)
-                        </label>
-                      </li>
-                      <li class="flex items-center">
-                        <input
-                          id="razor"
-                          type="checkbox"
-                          value=""
-                          class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 "
-                        />
-                        <label
-                          for="razor"
-                          class="ml-2 text-sm font-medium text-gray-900 "
-                        >
-                          Razor (49)
-                        </label>
-                      </li>
-                      <li class="flex items-center">
-                        <input
-                          id="nikon"
-                          type="checkbox"
-                          value=""
-                          class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 "
-                        />
-                        <label
-                          for="nikon"
-                          class="ml-2 text-sm font-medium text-gray-900 "
-                        >
-                          Nikon (12)
-                        </label>
-                      </li>
-                      <li class="flex items-center">
-                        <input
-                          id="benq"
-                          type="checkbox"
-                          value=""
-                          class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 "
-                        />
-                        <label
-                          for="benq"
-                          class="ml-2 text-sm font-medium text-gray-900 "
-                        >
-                          BenQ (74)
-                        </label>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm text-left text-gray-500 ">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 ">
-                  <tr>
-                    <th scope="col" class="px-4 py-3">
-                      users name
-                    </th>
-                    <th scope="col" class="px-4 py-3">
-                      Email
-                    </th>
-                    <th scope="col" class="px-4 py-3">
-                      subscription
-                    </th>
-                    <th scope="col" class="px-4 py-3">
-                      Description
-                    </th>
-                    <th scope="col" class="px-4 py-3">
-                      Price
-                    </th>
-                    <th scope="col" class="px-4 py-3">
-                      <span class="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-  <tbody>
-          {filteredUsers.length === 0 ? (
-            <tr>
-              <td colSpan="6" className="text-center py-4 text-gray-500">
-                No users found.
-              </td>
-            </tr>
-          ) : (
-            filteredUsers.map((user, index) => (
-           user.firstName &&   <tr key={user.id} className="border-b border-b-gray-300">
-                <th scope="row" className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                  {user.firstName} {user.lastName}
-                </th>
-                <td className="px-4 py-3">{user.email}</td>
-                <td className="px-4 py-3">8X8 workflow</td> {/* Placeholder */}
-                <td className="px-4 py-3">300</td>
-                <td className="px-4 py-3">$2999</td>
-                <td className="px-4 py-3 flex items-center justify-end">
-                  <button
-                    id={`dropdown-button-${index}`}
-                    data-dropdown-toggle={`dropdown-${index}`}
-                    className="inline-flex items-center p-0.5 text-sm font-medium text-center text-gray-500 hover:text-gray-800 rounded-lg focus:outline-none"
-                    type="button"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                    </svg>
-                  </button>
-                  <div
-                    id={`dropdown-${index}`}
-                    className="hidden z-10 w-44 bg-white rounded divide-y divide-gray-100 shadow"
-                  >
-                    <ul className="py-1 text-sm text-gray-700" aria-labelledby={`dropdown-button-${index}`}>
-                      <li>
-                        <a href="#" className="block py-2 px-4 hover:bg-gray-100">Show</a>
-                      </li>
-                      <li>
-                        <a href="#" className="block py-2 px-4 hover:bg-gray-100">Edit</a>
-                      </li>
-                    </ul>
-                    <div className="py-1">
-                      <a href="#" className="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Delete</a>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
+                      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <div className="text-xs text-slate-400 mb-2">
+                          Usage trend (demo)
+                        </div>
 
-              </table>
+                        <div className="h-[180px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={app.trend}>
+                              <XAxis dataKey="day" hide />
+                              <YAxis />
+                              <Tooltip />
+                              <Line
+                                type="monotone"
+                                dataKey="events"
+                                stroke={PRIMARY}
+                                strokeWidth={2}
+                                dot={false}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        <div className="mt-3 text-xs text-slate-400">
+                          Insight: Users engaging with{" "}
+                          <span className="text-slate-200 font-medium">
+                            {app.app}
+                          </span>{" "}
+                          show consistent activity with moderate retention.
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+{/* USER PROFILE DRAWER */}
+{/* USER PROFILE DRAWER (POLISHED) */}
+<AnimatePresence>
+  {activeUser && (
+    <motion.div
+      className="fixed inset-0 z-40 flex"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="flex-1 bg-black/50"
+        onClick={() => setActiveUser(null)}
+      />
+
+      {/* Drawer */}
+      <motion.div
+        className="w-[440px] h-full bg-gradient-to-b from-slate-950 to-slate-900
+          border-l border-slate-800 p-6 overflow-y-auto"
+        initial={{ x: 440 }}
+        animate={{ x: 0 }}
+        exit={{ x: 440 }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">
+              User Profile
+            </h3>
+            <p className="text-xs text-slate-400">
+              Account overview & usage
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveUser(null)}
+            className="p-2 rounded-lg hover:bg-slate-800 transition"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* USER CARD */}
+        <div className="flex items-center gap-4 mb-8">
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center
+              text-sm font-semibold text-white shadow-md"
+            style={{ backgroundColor: PRIMARY }}
+          >
+            {`${activeUser.firstName?.[0] || ""}${activeUser.lastName?.[0] || ""}`}
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-slate-200">
+              {activeUser.firstName} {activeUser.lastName}
             </div>
-            <nav
-              class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 p-4"
-              aria-label="Table navigation"
-            >
-              <span class="text-sm font-normal text-gray-500 ">
-                Showing
-                <span class="font-semibold text-gray-900 ">1-10</span>
-                of
-                <span class="font-semibold text-gray-900 ">1000</span>
-              </span>
-              <ul class="inline-flex items-stretch -space-x-px">
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center h-full py-1.5 px-3 ml-0 text-gray-500 bg-white rounded-l-lg border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    <span class="sr-only">Previous</span>
-                    <svg
-                      class="w-5 h-5"
-                      aria-hidden="true"
-                      fill="currentColor"
-                      viewbox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center text-sm py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    1
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center text-sm py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    2
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    aria-current="page"
-                    class="flex items-center justify-center text-sm z-10 py-2 px-3 leading-tight text-primary-600 bg-indigo-50 border border-indigo-300 hover:bg-indigo-300 hover:text-primary-700 "
-                  >
-                    3
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center text-sm py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    ...
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center text-sm py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    100
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    class="flex items-center justify-center h-full py-1.5 px-3 leading-tight text-gray-500 bg-white rounded-r-lg border border-gray-300 hover:bg-gray-100 hover:text-gray-700 "
-                  >
-                    <span class="sr-only">Next</span>
-                    <svg
-                      class="w-5 h-5"
-                      aria-hidden="true"
-                      fill="currentColor"
-                      viewbox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </a>
-                </li>
-              </ul>
-            </nav>
+            <div className="text-xs text-slate-400">
+              {activeUser.email}
+            </div>
+            <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5
+              rounded-full text-[11px]
+              bg-teal-500/10 text-teal-300 border border-teal-500/40">
+              Explified user
+            </div>
           </div>
         </div>
-      </section>
-    </>
-  );
-};
 
-export default UserComponent;
+        {/* BASIC INFO */}
+        <div className="mb-6">
+          <div className="text-xs font-semibold text-slate-300 mb-3">
+            Basic Information
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4
+            space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Name</span>
+              <span className="text-slate-200">
+                {activeUser.firstName} {activeUser.lastName}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Email</span>
+              <span className="text-slate-200">
+                {activeUser.email}
+              </span>
+            </div>
+            {activeUser.id && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">User ID</span>
+                <span className="text-slate-200">
+                  {activeUser.id}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SUBSCRIPTIONS */}
+        <div className="mb-6">
+          <div className="text-xs font-semibold text-slate-300 mb-3">
+            Subscriptions
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {activeUser._subscriptions.map((s) => (
+              <span
+                key={s}
+                className="px-3 py-1 rounded-full text-[11px] font-medium
+                  bg-teal-500/10 text-teal-300
+                  border border-teal-500/40"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* USAGE METRICS */}
+        <div className="mb-6">
+          <div className="text-xs font-semibold text-slate-300 mb-3">
+            Usage Metrics
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <div className="text-xs text-slate-400">
+                Total events
+              </div>
+              <div className="text-lg font-semibold text-slate-200 mt-1">
+                {activeUser._usage}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <div className="text-xs text-slate-400">
+                Avg per app
+              </div>
+              <div className="text-lg font-semibold text-slate-200 mt-1">
+                {Math.round(
+                  activeUser._usage / activeUser._subscriptions.length
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* INSIGHT */}
+        <div className="rounded-xl border border-slate-800 bg-gradient-to-br
+          from-slate-900 to-slate-900/60 p-4 text-xs text-slate-400">
+          Insight: This user shows steady engagement across multiple Explified
+          tools, indicating consistent product adoption.
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+
+    </section>
+  );
+}

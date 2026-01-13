@@ -1,17 +1,16 @@
-import Navbar from "./Navbar";
-import Sidebar from "./Sidebar";
+// Layout.jsx
+import React from "react";
 import { Outlet } from "react-router-dom";
+import Sidebar from "./Sidebar";
 
 const Layout = () => {
   return (
     <div className="flex">
       <Sidebar />
-      <div className="ml-64 w-full">
-        <Navbar />
-        <div className="pt-16 min-h-screen bg-gray-50">
-          <Outlet /> {/* or your routed pages */}
-        </div>
-      </div>
+      {/* main content area – no navbar, so no pt-16 */}
+      <main className="flex-1 min-h-screen bg-white">
+        <Outlet />
+      </main>
     </div>
   );
 };

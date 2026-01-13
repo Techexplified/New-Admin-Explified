@@ -16,11 +16,10 @@ import UserComponent from "./pages/UsersComp";
 import GoogleAnalytics from "./pages/GoogleAnalytics";
 import Extensions from "./pages/extensions";
 import ShopifyAnalyticsDashboard from "./pages/shopifyDashboard";
-
-
+import ComponentTracker from "./pages/trackerComp";
 
 const App = () => {
-const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   return (
     <BrowserRouter>
@@ -50,23 +49,30 @@ const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
           }
         >
           <Route path="dashboard" element={<Dashboard />} />
-          
-<Route path="extensions-data" element={<Extensions />} />
-<Route path="shopify-data" element={<ShopifyAnalyticsDashboard />} />
+
+          <Route path="extensions-data" element={<Extensions />} />
+          <Route path="shopify-data" element={<ShopifyAnalyticsDashboard />} />
           <Route path="product-analytics" element={<ProductDashboard />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="analytics/web" element={<WebAnalytics />} />
           <Route path="analytics/extension" element={<ExtensionAnalytics />} />
           <Route path="analytics/firebase" element={<FirebaseAnalytics />} />
           <Route path="analytics/yt" element={<YTAnalytics />} />
-          <Route path="explified/users" element={<UserComponent/>} />
+          <Route path="explified/users" element={<UserComponent />} />
+          <Route path="/explified/tracker" element={<ComponentTracker />} />
           <Route
             path="explified-analytics/login"
             element={<LoginWithGoogle />}
           />
         </Route>
-    <Route path="dashboard/explified-analytics" element={<YoutubeAnalytics />} />
-    <Route path="/google/explified/analytics" element={<GoogleAnalytics />} />
+        <Route
+          path="dashboard/explified-analytics"
+          element={<YoutubeAnalytics />}
+        />
+        <Route
+          path="/google/explified/analytics"
+          element={<GoogleAnalytics />}
+        />
       </Routes>
     </BrowserRouter>
   );
