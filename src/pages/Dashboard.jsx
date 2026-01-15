@@ -2,25 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { gapi } from "gapi-script";
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  BarChart,
-  Bar,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  Activity,
-  UserPlus,
-  MousePointerClick,
-  Users as UsersIcon,
-  Clock3,
-} from "lucide-react";
+import AnalyticsDropdown from "../components/AnalyticsDropdown";
+import MetricCard from "../components/MetricCard";
+import ChartCard from "../components/ChartCard";
+import SidePanel from "../components/SidePanel";
 
 const GA4_PROPERTY_ID = "489164789";
 const TEAL = "#23B5B5";
@@ -91,18 +76,17 @@ const Dashboard = () => {
         gapi.client.setToken({ access_token: token });
 
         // MAIN TIMESERIES
-        const multiResp =
-          await gapi.client.analyticsdata.properties.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
-            dimensions: [{ name: "date" }],
-            metrics: [
-              { name: "activeUsers" },
-              { name: "sessions" },
-              { name: "totalUsers" },
-              { name: "averageSessionDuration" },
-            ],
-          });
+        const multiResp = await gapi.client.analyticsdata.properties.runReport({
+          property: `properties/${GA4_PROPERTY_ID}`,
+          dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+          dimensions: [{ name: "date" }],
+          metrics: [
+            { name: "activeUsers" },
+            { name: "sessions" },
+            { name: "totalUsers" },
+            { name: "averageSessionDuration" },
+          ],
+        });
 
         const chartData =
           multiResp.result.rows?.map((row) => ({
@@ -110,9 +94,7 @@ const Dashboard = () => {
             activeUsers: parseInt(row.metricValues[0].value || 0),
             sessions: parseInt(row.metricValues[1].value || 0),
             totalUsers: parseInt(row.metricValues[2].value || 0),
-            averageSessionDuration: parseFloat(
-              row.metricValues[3].value || 0
-            ),
+            averageSessionDuration: parseFloat(row.metricValues[3].value || 0),
           })) || [];
 
         const sorted = chartData
@@ -171,9 +153,7 @@ const Dashboard = () => {
             sessions: parseInt(r.metricValues?.[0]?.value || 0),
             activeUsers: parseInt(r.metricValues?.[1]?.value || 0),
             newUsers: parseInt(r.metricValues?.[2]?.value || 0),
-            averageSessionDuration: parseFloat(
-              r.metricValues?.[3]?.value || 0
-            ),
+            averageSessionDuration: parseFloat(r.metricValues?.[3]?.value || 0),
             eventCount: parseInt(r.metricValues?.[4]?.value || 0),
             totalUsers: parseInt(r.metricValues?.[5]?.value || 0),
             revenue: parseFloat(r.metricValues?.[6]?.value || 0),
@@ -298,7 +278,6 @@ const Dashboard = () => {
 
             const bRows = browserResp.result.rows || [];
             const browsers = bRows.map((r) => ({
-
               browser: r.dimensionValues?.[0]?.value || "(not set)",
               activeUsers: parseInt(r.metricValues?.[0]?.value || 0),
               newUsers: parseInt(r.metricValues?.[1]?.value || 0),
@@ -343,9 +322,7 @@ const Dashboard = () => {
 
             setBrowserData(withDerived);
             setBrowserChartData(
-              withDerived
-                .slice()
-                .sort((a, b) => b.activeUsers - a.activeUsers)
+              withDerived.slice().sort((a, b) => b.activeUsers - a.activeUsers)
             );
           } catch (be) {
             console.warn("Failed to fetch browser data:", be);
@@ -417,9 +394,7 @@ const Dashboard = () => {
 
             setCountryData(withDerivedC);
             setCountryChartData(
-              withDerivedC
-                .slice()
-                .sort((a, b) => b.activeUsers - a.activeUsers)
+              withDerivedC.slice().sort((a, b) => b.activeUsers - a.activeUsers)
             );
           } catch (ce) {
             console.warn("Failed to fetch country data:", ce);
@@ -503,8 +478,7 @@ const Dashboard = () => {
             const map2 = {};
             t2Rows.forEach((r) => {
               const dateKey = r.dimensionValues?.[0]?.value;
-              const ch =
-                r.dimensionValues?.[1]?.value || "(not set)";
+              const ch = r.dimensionValues?.[1]?.value || "(not set)";
               const sessions = parseInt(r.metricValues?.[0]?.value || 0);
               if (!topChartChannels.includes(ch)) return;
               map2[dateKey] = map2[dateKey] || {};
@@ -634,12 +608,7 @@ const Dashboard = () => {
                   Product analytics
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-50">
-                Explified Analytics
-              </h1>
-              <p className="mt-1 text-xs sm:text-sm text-slate-400">
-                Snapshot of users, sessions and engagement over the last 7 days.
-              </p>
+              <AnalyticsDropdown />
             </div>
 
             <div className="flex items-center gap-3">
@@ -709,9 +678,7 @@ const Dashboard = () => {
                   ? `${Math.floor(
                       summary.averageSessionDuration / 60
                     )}:${String(
-                      Math.round(
-                        summary.averageSessionDuration % 60
-                      )
+                      Math.round(summary.averageSessionDuration % 60)
                     ).padStart(2, "0")}`
                   : "0:00"
               }
@@ -742,9 +709,10 @@ const Dashboard = () => {
               data={seriesData}
               dataKey="averageSessionDuration"
               formatter={(v) =>
-                `${Math.floor(v / 60)}:${String(
-                  Math.round(v % 60)
-                ).padStart(2, "0")}`
+                `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(
+                  2,
+                  "0"
+                )}`
               }
             />
           </section>
@@ -782,10 +750,10 @@ const Dashboard = () => {
                 {activeUsersData
                   .filter((row) => {
                     if (!filter) return true;
-                    const dateStr = `${row.date.slice(
-                      0,
-                      4
-                    )}-${row.date.slice(4, 6)}-${row.date.slice(6)}`;
+                    const dateStr = `${row.date.slice(0, 4)}-${row.date.slice(
+                      4,
+                      6
+                    )}-${row.date.slice(6)}`;
                     return (
                       dateStr.includes(filter) ||
                       row.activeUsers
@@ -840,812 +808,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-/* ---------- PRESENTATION COMPONENTS ---------- */
-
-const MetricCard = ({
-  title,
-  subtitle,
-  value,
-  variant = "default",
-  compact = false,
-  icon,
-}) => {
-  const formattedValue =
-    typeof value === "number" ? value.toLocaleString() : value;
-
-  const isPrimary = variant === "primary";
-
-  const iconMap = {
-    pulse: <Activity className="w-4 h-4" />,
-    userPlus: <UserPlus className="w-4 h-4" />,
-    click: <MousePointerClick className="w-4 h-4" />,
-    users: <UsersIcon className="w-4 h-4" />,
-    activity: <Activity className="w-4 h-4" />,
-    clock: <Clock3 className="w-4 h-4" />,
-  };
-
-  return (
-    <div
-      className={`rounded-2xl px-4 py-3 sm:px-5 sm:py-4 border transition-all duration-150 ${
-        isPrimary
-          ? "bg-teal-500/10 border-teal-500/40 shadow-sm"
-          : "bg-slate-900 border-slate-800 hover:shadow-md"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            {title}
-          </p>
-          {subtitle && (
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              {subtitle}
-            </p>
-          )}
-        </div>
-        {icon && (
-          <div
-            className={`flex items-center justify-center rounded-full ${
-              compact ? "w-7 h-7" : "w-8 h-8"
-            }`}
-            style={{
-              background: isPrimary
-                ? "rgba(35,181,181,0.18)"
-                : "rgba(15,23,42,0.7)",
-              color: isPrimary ? TEAL : "#e5f9f9",
-            }}
-          >
-            {iconMap[icon]}
-          </div>
-        )}
-      </div>
-      <p
-        className={`mt-2 ${
-          compact ? "text-xl" : "text-2xl"
-        } sm:text-2xl font-semibold text-slate-50`}
-      >
-        {formattedValue}
-      </p>
-    </div>
-  );
-};
-
-const ChartCard = ({ title, data = [], dataKey = "activeUsers", formatter }) => (
-  <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl border border-slate-800 shadow-sm hover:shadow-lg transition-all duration-150 px-4 py-4 sm:px-5 sm:py-5">
-    <h2 className="text-sm sm:text-base font-semibold mb-3 text-slate-50">
-      {title}
-    </h2>
-    <div className="w-full h-60 sm:h-64">
-      {!data || data.length === 0 ? (
-        <div className="w-full h-full flex items-center justify-center text-slate-500">
-          <div className="text-center">
-            <div className="h-3 w-40 bg-slate-700 rounded-full mb-3 animate-pulse" />
-            <div className="text-xs">No data available</div>
-          </div>
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#9ca3af", fontSize: 11 }}
-            />
-            <YAxis
-              tick={{ fill: "#9ca3af", fontSize: 11 }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#020617",
-                borderRadius: 8,
-                border: "1px solid #1f2937",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.6)",
-                color: "#e5e7eb",
-              }}
-              cursor={{ stroke: TEAL, strokeWidth: 2 }}
-              formatter={formatter}
-              labelStyle={{ color: "#e5e7eb" }}
-            />
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              stroke={TEAL}
-              strokeWidth={3}
-              dot={{ r: 3, stroke: "#0f172a", strokeWidth: 1 }}
-              activeDot={{ r: 5, stroke: TEAL_DARK, strokeWidth: 1.5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  </div>
-);
-
-/* ---------- SIDE PANEL + TABS ---------- */
-/* ---------- SIDE PANEL (HEIGHT FIXED + PROFESSIONAL) ---------- */
-
-const SidePanel = ({
-  drawerActive,
-  closeDrawer,
-  panelTab,
-  setPanelTab,
-  landingChartData,
-  landingChartSeries,
-  landingPagesData,
-  browserChartData,
-  browserData,
-  countryChartData,
-  countryData,
-  trafficChartData,
-  trafficChartSeries,
-  trafficData,
-  fmtDuration,
-}) => {
-  const tabs = [
-    "Landing",
-    "Browser",
-    "Demographic",
-    "Traffic acquisition",
-  ];
-
-  return (
-    <div
-      className={`fixed inset-0 z-50 ${
-        drawerActive ? "pointer-events-auto" : "pointer-events-none"
-      }`}
-    >
-      {/* Overlay */}
-      <div
-        onClick={closeDrawer}
-        className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          drawerActive ? "opacity-100" : "opacity-0"
-        }`}
-      />
-
-      {/* Drawer */}
-      <aside
-        role="dialog"
-        aria-modal="true"
-        className={`
-          absolute right-0 bottom-0
-          md:top-6 md:bottom-6 md:right-6
-          w-full md:w-[78vw] lg:w-[68vw] xl:w-[58vw]
-          
-          /* HEIGHT CONTROL */
-          h-[88svh] md:h-[calc(100vh-3rem)]
-          
-          bg-[#020617]
-          border-t md:border border-slate-800
-          shadow-[0_0_40px_rgba(0,0,0,0.6)]
-          rounded-t-2xl md:rounded-xl
-          
-          transform transition-transform duration-300
-          ease-[cubic-bezier(.22,.61,.36,1)]
-          ${drawerActive
-            ? "translate-y-0 md:translate-x-0"
-            : "translate-y-full md:translate-x-full"}
-        `}
-      >
-        {/* ===== HEADER (FIXED HEIGHT) ===== */}
-        <div className="sticky top-0 z-10 bg-[#020617]/95 backdrop-blur border-b border-slate-800">
-          {/* Drag handle (mobile only) */}
-          <div className="md:hidden flex justify-center py-2">
-            <span className="h-1.5 w-10 rounded-full bg-slate-700" />
-          </div>
-
-          <div className="px-4 sm:px-6 pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm sm:text-base font-semibold text-slate-50">
-                  Deep dive analytics
-                </h3>
-                <p className="text-[11px] text-slate-400">
-                  Granular performance breakdowns
-                </p>
-              </div>
-              <button
-                onClick={closeDrawer}
-                className="h-9 px-4 rounded-full bg-slate-900 text-[11px] font-medium text-slate-200 hover:bg-slate-800 border border-slate-700 transition"
-              >
-                Close
-              </button>
-            </div>
-
-            {/* MOBILE TABS */}
-            <div className="mt-4 flex md:hidden gap-2 overflow-x-auto scrollbar-hide">
-              {tabs.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setPanelTab(t)}
-                  className={`flex-shrink-0 px-4 h-9 text-xs rounded-full transition ${
-                    panelTab === t
-                      ? "bg-teal-600 text-white"
-                      : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ===== BODY (NO EXTRA SCROLL) ===== */}
-        <div className="flex h-[calc(100%-128px)] md:h-[calc(100%-80px)] overflow-hidden">
-          {/* DESKTOP TABS */}
-          <aside className="hidden md:flex w-44 flex-col gap-2 p-4 border-r border-slate-800">
-            {tabs.map((t) => (
-              <button
-                key={t}
-                onClick={() => setPanelTab(t)}
-                className={`text-sm text-left px-3 py-2.5 rounded-lg transition ${
-                  panelTab === t
-                    ? "bg-teal-600 text-white"
-                    : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </aside>
-
-          {/* CONTENT */}
-          <section className="flex-1 min-w-0 px-4 sm:px-6 py-4 overflow-y-auto text-sm text-slate-100">
-            {panelTab === "Landing" && (
-              <LandingTab
-                landingChartData={landingChartData}
-                landingChartSeries={landingChartSeries}
-                landingPagesData={landingPagesData}
-                fmtDuration={fmtDuration}
-              />
-            )}
-
-            {panelTab === "Browser" && (
-              <BrowserTab
-                browserChartData={browserChartData}
-                browserData={browserData}
-                fmtDuration={fmtDuration}
-              />
-            )}
-
-            {panelTab === "Demographic" && (
-              <DemographicTab
-                countryChartData={countryChartData}
-                countryData={countryData}
-                fmtDuration={fmtDuration}
-              />
-            )}
-
-            {panelTab === "Traffic acquisition" && (
-              <TrafficTab
-                trafficChartData={trafficChartData}
-                trafficChartSeries={trafficChartSeries}
-                trafficData={trafficData}
-                fmtDuration={fmtDuration}
-              />
-            )}
-          </section>
-        </div>
-      </aside>
-    </div>
-  );
-};
-
-
-/* --- INDIVIDUAL TABS (dark) --- */
-
-const LandingTab = ({
-  landingChartData,
-  landingChartSeries,
-  landingPagesData,
-  fmtDuration,
-}) => (
-  <>
-    <h4 className="text-lg font-semibold mb-1 text-slate-50">
-      Landing pages
-    </h4>
-    <div className="text-xs text-slate-400 mb-4">
-      Sessions and engagement by landing page.
-    </div>
-
-    {landingChartData &&
-      landingChartData.length > 0 &&
-      landingChartSeries &&
-      landingChartSeries.length > 0 && (
-        <div className="w-full h-56 mb-4 bg-slate-900 rounded-md p-2 shadow-sm border border-slate-800">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={landingChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fill: "#e5e7eb" }} />
-              <YAxis tick={{ fill: "#e5e7eb" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#020617",
-                  borderRadius: 6,
-                  border: "1px solid #1f2937",
-                  color: "#e5e7eb",
-                }}
-                labelStyle={{ color: "#e5e7eb" }}
-              />
-              <Legend />
-              {landingChartSeries.map((name, idx) => (
-                <Line
-                  key={name}
-                  type="monotone"
-                  dataKey={name}
-                  stroke={[
-                    "#22c55e",
-                    "#0ea5e9",
-                    "#f97316",
-                    "#6366f1",
-                    "#e11d48",
-                    "#14b8a6",
-                  ][idx % 6]}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-    <div className="overflow-auto">
-      <table className="w-full table-fixed border-collapse text-slate-100 text-xs sm:text-sm">
-        <thead className="sticky top-0 bg-slate-900/95 backdrop-blur">
-          <tr className="uppercase text-[11px] font-semibold tracking-wide text-slate-400">
-            <th className="px-2 py-2 text-left w-6">
-              <input type="checkbox" aria-label="select all" />
-            </th>
-            <th className="px-2 py-2 text-left w-[32%]">Landing page</th>
-            <th className="px-2 py-2 text-right">Sessions</th>
-            <th className="px-2 py-2 text-right">Active users</th>
-            <th className="px-2 py-2 text-right">New users</th>
-            <th className="px-2 py-2 text-right">Avg. engagement</th>
-            <th className="px-2 py-2 text-right">Key events</th>
-            <th className="px-2 py-2 text-right">Session event rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {landingPagesData.length === 0 ? (
-            <tr>
-              <td
-                colSpan={8}
-                className="px-2 py-6 text-center text-slate-500"
-              >
-                No landing page data available.
-              </td>
-            </tr>
-          ) : (
-            landingPagesData.map((row, i) => (
-              <tr
-                key={i}
-                className={`transition-all duration-150 hover:bg-teal-500/10 ${
-                  i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/80"
-                }`}
-              >
-                <td className="px-2 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label={`select ${row.landingPage}`}
-                  />
-                </td>
-                <td className="px-2 py-2 font-mono text-slate-100 truncate max-w-[30ch]">
-                  {row.landingPage}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="font-semibold text-slate-50">
-                    {row.sessions.toLocaleString()}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {row.sessionsPct
-                      ? `${row.sessionsPct.toFixed(2)}%`
-                      : "0% of total"}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="font-semibold text-slate-50">
-                    {row.activeUsers.toLocaleString()}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {row.activeUsersPct
-                      ? `${row.activeUsersPct.toFixed(2)}%`
-                      : "0% of total"}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="font-semibold text-slate-50">
-                    {row.newUsers.toLocaleString()}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {row.newUsersPct
-                      ? `${row.newUsersPct.toFixed(2)}%`
-                      : "0%"}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {fmtDuration(row.averageSessionDuration)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.eventCount.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.sessionEventRate
-                    ? `${row.sessionEventRate.toFixed(0)}%`
-                    : "0%"}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  </>
-);
-
-const BrowserTab = ({ browserChartData, browserData, fmtDuration }) => (
-  <>
-    <h4 className="text-lg font-semibold mb-1 text-slate-50">Browser</h4>
-    <div className="text-xs text-slate-400 mb-4">
-      Active users by browser (last 7 days).
-    </div>
-
-    {browserChartData && browserChartData.length > 0 && (
-      <div className="w-full h-56 mb-4 bg-slate-900 rounded-md p-2 shadow-sm border border-slate-800">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={browserChartData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis type="number" tick={{ fill: "#e5e7eb" }} />
-            <YAxis
-              type="category"
-              dataKey="browser"
-              width={140}
-              tick={{ fill: "#e5e7eb" }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#020617",
-                borderRadius: 6,
-                border: "1px solid #1f2937",
-                color: "#e5e7eb",
-              }}
-              labelStyle={{ color: "#e5e7eb" }}
-            />
-            <Bar dataKey="activeUsers" fill={TEAL} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    )}
-
-    <div className="overflow-auto">
-      <table className="w-full table-fixed border-collapse text-slate-100 text-xs sm:text-sm">
-        <thead className="sticky top-0 bg-slate-900/95 backdrop-blur">
-          <tr className="uppercase text-[11px] font-semibold tracking-wide text-slate-400">
-            <th className="px-2 py-2 text-left w-6">
-              <input type="checkbox" aria-label="select all" />
-            </th>
-            <th className="px-2 py-2 text-left">Browser</th>
-            <th className="px-2 py-2 text-right">Active users</th>
-            <th className="px-2 py-2 text-right">New users</th>
-            <th className="px-2 py-2 text-right">Engaged sessions</th>
-            <th className="px-2 py-2 text-right">Engagement rate</th>
-            <th className="px-2 py-2 text-right">Engaged / active</th>
-            <th className="px-2 py-2 text-right">Avg. engagement</th>
-            <th className="px-2 py-2 text-right">Event count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {browserData.length === 0 ? (
-            <tr>
-              <td
-                colSpan={9}
-                className="px-2 py-6 text-center text-slate-500"
-              >
-                No browser data available.
-              </td>
-            </tr>
-          ) : (
-            browserData.map((b, i) => (
-              <tr
-                key={i}
-                className={`transition-all duration-150 hover:bg-teal-500/10 ${
-                  i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/80"
-                }`}
-              >
-                <td className="px-2 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label={`select ${b.browser}`}
-                  />
-                </td>
-                <td className="px-2 py-2 font-mono text-slate-100">
-                  {b.browser}
-                </td>
-                <td className="px-2 py-2 text-right font-semibold text-slate-50">
-                  {b.activeUsers.toLocaleString()}
-                  <div className="text-[11px] text-slate-400">
-                    {b.activeUsersPct
-                      ? `${b.activeUsersPct.toFixed(2)}%`
-                      : "0%"}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {b.newUsers.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {b.engagedSessions.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {b.engagedRate ? `${b.engagedRate.toFixed(2)}%` : "0%"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {b.engagedPerActive ? b.engagedPerActive.toFixed(2) : "0"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {fmtDuration(b.averageSessionDuration)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {b.eventCount.toLocaleString()}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  </>
-);
-
-const DemographicTab = ({
-  countryChartData,
-  countryData,
-  fmtDuration,
-}) => (
-  <>
-    <h4 className="text-lg font-semibold mb-1 text-slate-50">
-      Demographics – countries
-    </h4>
-    <div className="text-xs text-slate-400 mb-4">
-      Active users by country (last 7 days).
-    </div>
-
-    {countryChartData && countryChartData.length > 0 && (
-      <div className="w-full h-56 mb-4 bg-slate-900 rounded-md p-2 shadow-sm border border-slate-800">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={countryChartData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis type="number" tick={{ fill: "#e5e7eb" }} />
-            <YAxis
-              type="category"
-              dataKey="country"
-              width={180}
-              tick={{ fill: "#e5e7eb" }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#020617",
-                borderRadius: 6,
-                border: "1px solid #1f2937",
-                color: "#e5e7eb",
-              }}
-              labelStyle={{ color: "#e5e7eb" }}
-            />
-            <Bar dataKey="activeUsers" fill={TEAL} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    )}
-
-    <div className="overflow-auto">
-      <table className="w-full table-fixed border-collapse text-slate-100 text-xs sm:text-sm">
-        <thead className="sticky top-0 bg-slate-900/95 backdrop-blur">
-          <tr className="uppercase text-[11px] font-semibold tracking-wide text-slate-400">
-            <th className="px-2 py-2 text-left w-6">
-              <input type="checkbox" aria-label="select all" />
-            </th>
-            <th className="px-2 py-2 text-left w-[30%]">Country</th>
-            <th className="px-2 py-2 text-right">Active users</th>
-            <th className="px-2 py-2 text-right">New users</th>
-            <th className="px-2 py-2 text-right">Engaged sessions</th>
-            <th className="px-2 py-2 text-right">Engagement rate</th>
-            <th className="px-2 py-2 text-right">Engaged / active</th>
-            <th className="px-2 py-2 text-right">Avg. engagement</th>
-            <th className="px-2 py-2 text-right">Event count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {countryData.length === 0 ? (
-            <tr>
-              <td
-                colSpan={9}
-                className="px-2 py-6 text-center text-slate-500"
-              >
-                No country data available.
-              </td>
-            </tr>
-          ) : (
-            countryData.map((c, i) => (
-              <tr
-                key={i}
-                className={`transition-all duration-150 hover:bg-teal-500/10 ${
-                  i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/80"
-                }`}
-              >
-                <td className="px-2 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label={`select ${c.country}`}
-                  />
-                </td>
-                <td className="px-2 py-2 font-mono text-slate-100">
-                  {c.country}
-                </td>
-                <td className="px-2 py-2 text-right font-semibold text-slate-50">
-                  {c.activeUsers.toLocaleString()}
-                  <div className="text-[11px] text-slate-400">
-                    {c.activeUsersPct
-                      ? `${c.activeUsersPct.toFixed(2)}%`
-                      : "0%"}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {c.newUsers.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {c.engagedSessions.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {c.engagedRate ? `${c.engagedRate.toFixed(2)}%` : "0%"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {c.engagedPerActive ? c.engagedPerActive.toFixed(2) : "0"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {fmtDuration(c.averageSessionDuration)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {c.eventCount.toLocaleString()}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  </>
-);
-
-const TrafficTab = ({
-  trafficChartData,
-  trafficChartSeries,
-  trafficData,
-  fmtDuration,
-}) => (
-  <>
-    <h4 className="text-lg font-semibold mb-1 text-slate-50">
-      Traffic acquisition
-    </h4>
-    <div className="text-xs text-slate-400 mb-4">
-      Top channels and session trends.
-    </div>
-
-    {trafficChartData &&
-      trafficChartData.length > 0 &&
-      trafficChartSeries &&
-      trafficChartSeries.length > 0 && (
-        <div className="w-full h-56 mb-4 bg-slate-900 rounded-md p-2 shadow-sm border border-slate-800">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trafficChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fill: "#e5e7eb" }} />
-              <YAxis tick={{ fill: "#e5e7eb" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#020617",
-                  borderRadius: 6,
-                  border: "1px solid #1f2937",
-                  color: "#e5e7eb",
-                }}
-                labelStyle={{ color: "#e5e7eb" }}
-              />
-              <Legend />
-              {trafficChartSeries.map((name, idx) => (
-                <Line
-                  key={name}
-                  type="monotone"
-                  dataKey={name}
-                  stroke={[
-                    "#22c55e",
-                    "#0ea5e9",
-                    "#f97316",
-                    "#6366f1",
-                    "#e11d48",
-                    "#14b8a6",
-                  ][idx % 6]}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-    <div className="overflow-auto">
-      <table className="w-full table-fixed border-collapse text-slate-100 text-xs sm:text-sm">
-        <thead className="sticky top-0 bg-slate-900/95 backdrop-blur">
-          <tr className="uppercase text-[11px] font-semibold tracking-wide text-slate-400">
-            <th className="px-2 py-2 text-left w-6">
-              <input type="checkbox" aria-label="select all" />
-            </th>
-            <th className="px-2 py-2 text-left w-[32%]">Channel</th>
-            <th className="px-2 py-2 text-right">Sessions</th>
-            <th className="px-2 py-2 text-right">Engaged sessions</th>
-            <th className="px-2 py-2 text-right">Engagement rate</th>
-            <th className="px-2 py-2 text-right">Avg. engagement</th>
-            <th className="px-2 py-2 text-right">Events / session</th>
-            <th className="px-2 py-2 text-right">Event count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trafficData.length === 0 ? (
-            <tr>
-              <td
-                colSpan={8}
-                className="px-2 py-6 text-center text-slate-500"
-              >
-                No traffic data available.
-              </td>
-            </tr>
-          ) : (
-            trafficData.map((row, i) => (
-              <tr
-                key={i}
-                className={`transition-all duration-150 hover:bg-teal-500/10 ${
-                  i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/80"
-                }`}
-              >
-                <td className="px-2 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label={`select ${row.channel}`}
-                  />
-                </td>
-                <td className="px-2 py-2 font-mono text-slate-100 truncate max-w-[30ch]">
-                  {row.channel}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="font-semibold text-slate-50">
-                    {row.sessions.toLocaleString()}
-                  </div>
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.engagedSessions.toLocaleString()}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.engagementRate
-                    ? `${row.engagementRate.toFixed(2)}%`
-                    : "0%"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {fmtDuration(row.averageSessionDuration)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.eventsPerSession
-                    ? row.eventsPerSession.toFixed(2)
-                    : "0.00"}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  {row.eventCount.toLocaleString()}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  </>
-);
 
 export default Dashboard;
