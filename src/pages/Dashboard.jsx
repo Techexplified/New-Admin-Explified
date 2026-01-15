@@ -7,6 +7,73 @@ import MetricCard from "../components/MetricCard";
 import ChartCard from "../components/ChartCard";
 import SidePanel from "../components/SidePanel";
 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+const SortableMetricCard = (props) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+    opacity: isDragging ? 0.5 : 1,
+    cursor: "grab",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <MetricCard {...props} />
+    </div>
+  );
+};
+
+const SortableChartCard = ({ id, ...props }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+    opacity: isDragging ? 0.6 : 1,
+    cursor: "grab",
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ChartCard {...props} />
+    </div>
+  );
+};
+
 const GA4_PROPERTY_ID = "489164789";
 const TEAL = "#23B5B5";
 const TEAL_DARK = "#1B8F8F";
@@ -554,6 +621,147 @@ const Dashboard = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen]);
 
+  const [metrics, setMetrics] = useState([
+    {
+      id: "active",
+      title: "Active users",
+      subtitle: "Last 7 days",
+      value: summary.activeUsers,
+      icon: "pulse",
+      variant: "primary",
+    },
+    {
+      id: "new",
+      title: "New users",
+      subtitle: "Last 7 days",
+      value: summary.newUsers,
+      icon: "userPlus",
+    },
+    {
+      id: "events",
+      title: "Total events",
+      subtitle: "Last 7 days",
+      value: summary.eventCount,
+      icon: "click",
+    },
+    {
+      id: "sessions",
+      title: "Sessions",
+      subtitle: "Last 7 days",
+      value: summary.sessions,
+      icon: "activity",
+      compact: true,
+    },
+    {
+      id: "total",
+      title: "Total users",
+      subtitle: "All time",
+      value: summary.totalUsers,
+      icon: "users",
+      compact: true,
+    },
+    {
+      id: "avg_len",
+      title: "Avg. session length",
+      subtitle: "Last 7 days",
+      value: "9:10",
+      icon: "clock",
+      compact: true,
+    },
+  ]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // 3. Handle the reordering logic
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setMetrics((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Sync API summary data into draggable metrics state
+  useEffect(() => {
+    setMetrics((prevMetrics) =>
+      prevMetrics.map((m) => ({
+        ...m,
+        value:
+          m.id === "active"
+            ? summary.activeUsers
+            : m.id === "new"
+            ? summary.newUsers
+            : m.id === "events"
+            ? summary.eventCount
+            : m.id === "sessions"
+            ? summary.sessions
+            : m.id === "total"
+            ? summary.totalUsers
+            : m.id === "avg_len"
+            ? "9:10"
+            : m.value,
+      }))
+    );
+  }, [summary]);
+  const seriesData = timeseriesData.length ? timeseriesData : activeUsersData;
+
+  const [charts, setCharts] = useState([
+    {
+      id: "chart-1",
+      title: "Active users (last 7 days)",
+      data: seriesData,
+      dataKey: "activeUsers",
+    },
+    {
+      id: "chart-2",
+      title: "Sessions (last 7 days)",
+      data: seriesData,
+      dataKey: "sessions",
+    },
+    {
+      id: "chart-3",
+      title: "Total users (last 7 days)",
+      data: seriesData,
+      dataKey: "totalUsers",
+    },
+    {
+      id: "chart-4",
+      title: "Avg. session duration",
+      data: seriesData,
+      dataKey: "averageSessionDuration",
+      formatter: (v) =>
+        `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}`,
+    },
+  ]);
+
+  // New handler specifically for charts
+  const handleChartDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setCharts((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Sync API timeseries data into draggable charts state
+  useEffect(() => {
+    setCharts((prevCharts) =>
+      prevCharts.map((chart) => ({
+        ...chart,
+        data: seriesData,
+      }))
+    );
+  }, [seriesData]);
+
   const closeDrawer = () => {
     setDrawerActive(false);
     setTimeout(() => setDrawerOpen(false), 300);
@@ -588,8 +796,6 @@ const Dashboard = () => {
         </button>
       </div>
     );
-
-  const seriesData = timeseriesData.length ? timeseriesData : activeUsersData;
 
   return (
     <div className="min-h-screen bg-[#050816] px-4 sm:px-6 lg:px-8 py-6 text-slate-100">
@@ -631,91 +837,34 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {/* TOP METRICS STRIP */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
-            <MetricCard
-              title="Active users"
-              subtitle="Last 7 days"
-              value={summary.activeUsers}
-              variant="primary"
-              icon="pulse"
-            />
-            <MetricCard
-              title="New users"
-              subtitle="Last 7 days"
-              value={summary.newUsers}
-              icon="userPlus"
-            />
-            <MetricCard
-              title="Total events"
-              subtitle="Last 7 days"
-              value={summary.eventCount}
-              icon="click"
-            />
-          </section>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={metrics} strategy={rectSortingStrategy}>
+              <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-7">
+                {metrics.map((m) => (
+                  <SortableMetricCard key={m.id} {...m} />
+                ))}
+              </section>
+            </SortableContext>
+          </DndContext>
 
-          {/* SECONDARY METRICS */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-7">
-            <MetricCard
-              title="Sessions"
-              subtitle="Last 7 days"
-              value={summary.sessions}
-              compact
-              icon="activity"
-            />
-            <MetricCard
-              title="Total users"
-              subtitle="All time"
-              value={summary.totalUsers}
-              compact
-              icon="users"
-            />
-            <MetricCard
-              title="Avg. session length"
-              subtitle="Last 7 days"
-              value={
-                summary.averageSessionDuration
-                  ? `${Math.floor(
-                      summary.averageSessionDuration / 60
-                    )}:${String(
-                      Math.round(summary.averageSessionDuration % 60)
-                    ).padStart(2, "0")}`
-                  : "0:00"
-              }
-              compact
-              icon="clock"
-            />
-          </section>
-
-          {/* CHART GRID */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <ChartCard
-              title="Active users (last 7 days)"
-              data={seriesData}
-              dataKey="activeUsers"
-            />
-            <ChartCard
-              title="Sessions (last 7 days)"
-              data={seriesData}
-              dataKey="sessions"
-            />
-            <ChartCard
-              title="Total users (last 7 days)"
-              data={seriesData}
-              dataKey="totalUsers"
-            />
-            <ChartCard
-              title="Avg. session duration"
-              data={seriesData}
-              dataKey="averageSessionDuration"
-              formatter={(v) =>
-                `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(
-                  2,
-                  "0"
-                )}`
-              }
-            />
-          </section>
+          {/* DRAGGABLE CHART GRID */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleChartDragEnd}
+          >
+            <SortableContext items={charts} strategy={rectSortingStrategy}>
+              <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {charts.map((chart) => (
+                  <SortableChartCard key={chart.id} {...chart} />
+                ))}
+              </section>
+            </SortableContext>
+          </DndContext>
         </section>
 
         {/* RAW DATA TABLE */}
